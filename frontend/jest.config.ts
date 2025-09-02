@@ -11,6 +11,12 @@ const customJestConfig = {
   coverageProvider: "v8",
   testEnvironment: "jsdom",
   moduleDirectories: ["node_modules", "src", "<rootDir>"],
+  testTimeout: 10000,
+  collectCoverageFrom: ["src/**/*.{js,jsx,ts,tsx}", "!src/**/*.d.ts", "!src/test/**/*"],
+  moduleNameMapping: {
+    "^@/(.*)$": "<rootDir>/src/$1",
+  },
+  transformIgnorePatterns: ["node_modules/(?!(.*\\.mjs$|@testing-library/user-event))"],
 };
 
 // createJestConfig is exported this way to ensure that next/jest can load the Next.js config which is async

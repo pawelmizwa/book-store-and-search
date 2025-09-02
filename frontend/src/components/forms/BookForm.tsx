@@ -45,8 +45,12 @@ export function BookForm({
         },
   });
 
+  const handleFormSubmit = (data: CreateBookFormData) => {
+    onSubmit(data);
+  };
+
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+    <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-4">
       <div className="space-y-2">
         <Label htmlFor="title">Title *</Label>
         <Input

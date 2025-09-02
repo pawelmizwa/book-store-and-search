@@ -51,11 +51,15 @@ export function BookSearchForm({
     onReset();
   };
 
+  const handleFormSubmit = (data: SearchBooksFormData) => {
+    onSearch(data);
+  };
+
   return (
     <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
       <h2 className="text-lg font-semibold text-gray-900 mb-4">Search Books</h2>
       
-      <form onSubmit={handleSubmit(onSearch)} className="space-y-4">
+      <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-4">
         <div className="space-y-2">
           <Label htmlFor="search_query">Search</Label>
           <Input
