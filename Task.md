@@ -16,6 +16,5 @@ The book must be saved in database that can be deployed locally.
 4. Add a search functionality on the Title and Author fields
 5. Authentication is not required in the application. The book list functions as a global library, allowing everyone to add new books and search for entries added by others
 
-
 Create monorepo which will be for frontend and backend. Templates are just guide how to do it!
 </Task>
