@@ -98,7 +98,7 @@ export function BookSearchForm({
               step="0.1"
               min="1"
               max="5"
-              {...register('min_rating', { valueAsNumber: true })}
+              {...register('min_rating')}
               placeholder="1.0"
             />
             {errors.min_rating && (
@@ -114,7 +114,7 @@ export function BookSearchForm({
               step="0.1"
               min="1"
               max="5"
-              {...register('max_rating', { valueAsNumber: true })}
+              {...register('max_rating')}
               placeholder="5.0"
             />
             {errors.max_rating && (

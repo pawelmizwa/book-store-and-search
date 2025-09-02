@@ -92,7 +92,7 @@ export function BookForm({
           <Input
             id="pages"
             type="number"
-            {...register('pages', { valueAsNumber: true })}
+            {...register('pages')}
             placeholder="Number of pages"
             aria-invalid={errors.pages ? 'true' : 'false'}
           />
@@ -109,7 +109,7 @@ export function BookForm({
             step="0.1"
             min="1"
             max="5"
-            {...register('rating', { valueAsNumber: true })}
+            {...register('rating')}
             placeholder="Book rating"
             aria-invalid={errors.rating ? 'true' : 'false'}
           />
