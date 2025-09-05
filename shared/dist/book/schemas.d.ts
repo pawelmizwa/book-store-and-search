@@ -68,13 +68,14 @@ export declare const searchBooksFormSchema: z.ZodObject<{
     }>>;
 }, z.core.$strip>;
 export declare const bookEntitySchema: z.ZodObject<{
-    id: z.ZodString;
+    id: z.ZodNumber;
     book_id: z.ZodString;
     title: z.ZodString;
     author: z.ZodString;
     isbn: z.ZodOptional<z.ZodNullable<z.ZodString>>;
     pages: z.ZodOptional<z.ZodNullable<z.ZodNumber>>;
     rating: z.ZodOptional<z.ZodNullable<z.ZodNumber>>;
+    search_vector: z.ZodOptional<z.ZodNullable<z.ZodString>>;
     created_at: z.ZodDate;
     updated_at: z.ZodDate;
 }, z.core.$strip>;

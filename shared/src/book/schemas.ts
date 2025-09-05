@@ -90,13 +90,14 @@ export const searchBooksFormSchema = z.object({
 
 // Domain entity schema for backend
 export const bookEntitySchema = z.object({
-  id: bookIdSchema,
-  book_id: bookIdSchema,
+  id: z.number().int().min(0), // Synthetic sequential primary key (0 = auto-generated)
+  book_id: bookIdSchema, // UUID for external references
   title: titleSchema,
   author: authorSchema,
   isbn: z.string().min(1).max(50).nullable().optional(),
   pages: z.number().int().positive().nullable().optional(),
   rating: z.number().min(1.0).max(5.0).nullable().optional(),
+  search_vector: z.string().nullable().optional(), // Materialized tsvector for FTS
   created_at: z.date(),
   updated_at: z.date(),
 });

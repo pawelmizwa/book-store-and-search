@@ -53,13 +53,14 @@ export interface PaginatedBooksResponse {
 
 // Domain entity types for backend
 export interface BookEntity {
-  id: string;
-  book_id: string;
+  id: number; // Synthetic sequential primary key
+  book_id: string; // UUID for external references
   title: string;
   author: string;
   isbn?: string | null;
   pages?: number | null;
   rating?: number | null;
+  search_vector?: string | null; // Materialized tsvector for FTS
   created_at: Date;
   updated_at: Date;
 }

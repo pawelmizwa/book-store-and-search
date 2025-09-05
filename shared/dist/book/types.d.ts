@@ -46,13 +46,14 @@ export interface PaginatedBooksResponse {
     next_cursor?: string;
 }
 export interface BookEntity {
-    id: string;
+    id: number;
     book_id: string;
     title: string;
     author: string;
     isbn?: string | null;
     pages?: number | null;
     rating?: number | null;
+    search_vector?: string | null;
     created_at: Date;
     updated_at: Date;
 }

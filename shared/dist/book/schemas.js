@@ -81,13 +81,14 @@ exports.searchBooksFormSchema = zod_1.z.object({
 });
 // Domain entity schema for backend
 exports.bookEntitySchema = zod_1.z.object({
-    id: exports.bookIdSchema,
-    book_id: exports.bookIdSchema,
+    id: zod_1.z.number().int().min(0), // Synthetic sequential primary key (0 = auto-generated)
+    book_id: exports.bookIdSchema, // UUID for external references
     title: exports.titleSchema,
     author: exports.authorSchema,
     isbn: zod_1.z.string().min(1).max(50).nullable().optional(),
     pages: zod_1.z.number().int().positive().nullable().optional(),
     rating: zod_1.z.number().min(1.0).max(5.0).nullable().optional(),
+    search_vector: zod_1.z.string().nullable().optional(), // Materialized tsvector for FTS
     created_at: zod_1.z.date(),
     updated_at: zod_1.z.date(),
 });
