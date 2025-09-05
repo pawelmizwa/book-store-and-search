@@ -24,7 +24,7 @@ export function BookSearchForm({
     handleSubmit,
     reset,
     formState: { errors },
-  } = useForm<SearchBooksFormData>({
+  } = useForm({
     resolver: zodResolver(searchBooksSchema),
     defaultValues: {
       title: '',
@@ -51,7 +51,7 @@ export function BookSearchForm({
     onReset();
   };
 
-  const handleFormSubmit = (data: SearchBooksFormData) => {
+  const handleFormSubmit = (data: any) => {
     onSearch(data);
   };
 

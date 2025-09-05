@@ -26,7 +26,7 @@ export function BookForm({
     register,
     handleSubmit,
     formState: { errors },
-  } = useForm<CreateBookFormData>({
+  } = useForm({
     resolver: zodResolver(createBookSchema),
     defaultValues: initialData
       ? {
@@ -45,7 +45,7 @@ export function BookForm({
         },
   });
 
-  const handleFormSubmit = (data: CreateBookFormData) => {
+  const handleFormSubmit = (data: any) => {
     onSubmit(data);
   };
 

@@ -3,7 +3,7 @@ import { AppModule } from "src/app.module";
 import { FastifyAdapter, NestFastifyApplication } from "@nestjs/platform-fastify";
 import { Logger } from "nestjs-pino";
 import { TypedConfigService } from "src/config/typed-config-service";
-import helmet from "@fastify/helmet";
+import fastifyHelmet from "@fastify/helmet";
 import { DocumentBuilder, SwaggerModule } from "@nestjs/swagger";
 import { Config } from "src/config";
 import { AllExceptionsFilter } from "src/exceptions/all-exceptions.filter";
@@ -14,7 +14,17 @@ async function bootstrap() {
     cors: true,
   });
 
-  await app.register(helmet);
+  await app.register(fastifyHelmet as any, {
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: [`'self'`],
+        styleSrc: [`'self'`, `'unsafe-inline'`],
+        scriptSrc: [`'self'`],
+        imgSrc: [`'self'`, 'data:', 'validator.swagger.io'],
+        fontSrc: [`'self'`]
+      }
+    }
+  });
 
   const { httpAdapter } = app.get(HttpAdapterHost);
   app.useGlobalFilters(new AllExceptionsFilter(httpAdapter));
