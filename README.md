@@ -1,12 +1,13 @@
 # Bookstore Application
 
-A full-stack, enterprise-scale bookstore application built with modern technologies, **optimized to handle 10+ million book records** with sub-second search performance. The application features a NestJS backend with hexagonal architecture and a Next.js frontend with advanced search capabilities.
+A full-stack, enterprise-scale bookstore application built with modern technologies, optimized for **10+ million book records**. Features NestJS backend with hexagonal architecture and Next.js frontend.
 
 ## 🚀 Features
 
 ### Backend (NestJS)
 
 - ✅ **Hexagonal Architecture** for maintainable, testable code
+- ✅ **Enterprise Security** with input validation, rate limiting, and signed cursors
 - ✅ **Cursor-based Pagination** supporting millions of records
 - ✅ **Advanced Search** with full-text search and multiple filters
 - ✅ **PostgreSQL** with optimized indexes for fast queries
@@ -16,20 +17,19 @@ A full-stack, enterprise-scale bookstore application built with modern technolog
 
 ### Frontend (Next.js)
 
-- ✅ **Modern React** with TypeScript and Next.js 14
+- ✅ **Modern React** with TypeScript and Next.js 15
 - ✅ **Responsive Design** with Tailwind CSS and Radix UI
 - ✅ **React Query** for efficient data management and caching
 - ✅ **Form Validation** with React Hook Form and Zod
 - ✅ **Accessibility** compliant with WCAG guidelines
 - ✅ **Real-time Search** with debounced input and filters
 
-### Database Design
+### Database & Security
 
 - ✅ **Enterprise-Scale Optimization** for 10+ million records
-- ✅ **Dual Primary Key Strategy** - Sequential ID + UUID for optimal performance
+- ✅ **Dual Primary Key Strategy** - Sequential ID + UUID
 - ✅ **Advanced Indexing** - Trigram, GIN, composite, and partial indexes
-- ✅ **Materialized Full-Text Search** with custom configuration
-- ✅ **Sub-100ms Query Performance** for complex searches
+- ✅ **Enterprise Security** - Input validation, rate limiting, signed cursors
 - ✅ **Zero-Downtime Migrations** with backward compatibility
 
 ## 🏗️ Architecture
@@ -65,7 +65,7 @@ graph TD
 
 | Layer                | Technology                   | Purpose                                    |
 | -------------------- | ---------------------------- | ------------------------------------------ |
-| **Frontend**         | Next.js 14 + TypeScript      | React framework with SSR support           |
+| **Frontend**         | Next.js 15 + TypeScript      | React framework with SSR support           |
 | **UI Library**       | Tailwind CSS + Radix UI      | Styling and accessible components          |
 | **State Management** | React Query                  | Data fetching and caching                  |
 | **Form Handling**    | React Hook Form + Zod        | Form validation and submission             |
@@ -77,65 +77,20 @@ graph TD
 | **Documentation**    | Swagger/OpenAPI              | API documentation                          |
 | **Containerization** | Docker + Docker Compose      | Development and deployment                 |
 
-## 📊 Performance Characteristics
+## 📊 Performance & Security
 
-### 🚀 **Enterprise-Scale Performance (10M+ Records)**
+### Core Features
+- **Database Records**: Production-tested with 10+ million records
+- **Search Performance**: Fast partial text matching and full-text search
+- **Pagination**: O(1) performance with signed cursor-based pagination
+- **Security**: Comprehensive input validation, rate limiting, and attack prevention
+- **Concurrent Users**: Handles thousands of concurrent requests
 
-| **Query Type** | **Response Time** | **Characteristics** |
-|---|---|---|
-| **Title ILIKE Search** | 100-300ms | Sub-second partial text matching |
-| **Author ILIKE Search** | 100-300ms | Sub-second partial text matching |
-| **Full-Text Search** | 50-100ms | Ultra-fast multi-term search |
-| **Complex Multi-Filter** | 200-800ms | Sub-second complex queries |
-| **Deep Pagination** | <100ms | Consistent performance at any depth |
-| **INSERT Operations** | Consistent | Stable performance at scale |
-
-### Scalability Metrics
-
-- **Database Records**: **Production-tested with 10+ million records**
-- **Search Performance**: **Sub-second response times** for any complexity
-- **Pagination**: **O(1) performance** at any depth with cursor-based pagination
-- **Full-text Search**: **50-100ms** with materialized tsvector indexes
-- **Concurrent Users**: Handles **5000+ concurrent requests**
-- **Memory Efficiency**: **Optimized B-tree structure** with covering indexes
-
-### 🏗️ **Advanced Database Optimizations**
-
-#### **Primary Key Strategy**
-- **Synthetic Sequential ID**: BIGINT primary key for optimal B-tree performance
-- **UUID External Reference**: Maintains compatibility for external APIs
-- **Zero Fragmentation**: Sequential inserts prevent index degradation
-
-#### **Advanced Indexing Architecture**
-```sql
--- Trigram indexes for lightning-fast partial text search
-CREATE INDEX idx_books_title_trigram USING GIN (title gin_trgm_ops);
-CREATE INDEX idx_books_author_trigram USING GIN (author gin_trgm_ops);
-
--- Composite covering indexes for complex query optimization
-CREATE INDEX idx_books_search_covering (title, author, rating, created_at, id);
-CREATE INDEX idx_books_rating_pagination (rating, created_at, id) WHERE rating IS NOT NULL;
-
--- Partial indexes for hot data optimization
-CREATE INDEX idx_books_recent (created_at, id) WHERE created_at > NOW() - INTERVAL '30 days';
-CREATE INDEX idx_books_highly_rated (rating, created_at, id) WHERE rating >= 4.0;
-
--- Expression indexes for case-insensitive searches
-CREATE INDEX idx_books_title_lower (LOWER(title));
-CREATE INDEX idx_books_author_lower (LOWER(author));
-```
-
-#### **Full-Text Search Optimization**
-- **Materialized tsvector Column**: Pre-computed search vectors for instant FTS
-- **Custom Text Configuration**: Book-specific stemming and ranking
-- **Auto-Update Triggers**: Maintains search vectors automatically
-- **GIN Index**: Optimized for millions of documents
-
-#### **Query Optimization Strategy**
-- **Trigram Similarity**: Uses `%` operator for fuzzy matching
-- **Covering Indexes**: Eliminates table lookups for common queries
-- **Partial Indexes**: Optimizes frequently filtered data
-- **Statistics Tuning**: Enhanced autovacuum for better query planning
+### Database Architecture
+- **Dual Primary Key**: BIGINT sequential + UUID for performance and compatibility
+- **Specialized Indexes**: Trigram, covering, and partial indexes for optimal queries
+- **Materialized Full-Text Search**: Pre-computed search vectors with auto-maintenance
+- **Secure Queries**: Parameterized queries prevent injection attacks
 
 ## 🛠️ Quick Start
 
@@ -144,7 +99,7 @@ CREATE INDEX idx_books_author_lower (LOWER(author));
 - Node.js 20+
 - PostgreSQL 15+
 - Docker & Docker Compose
-- pnpm (recommended)
+- pnpm 9.15+
 
 ### Development Setup
 
@@ -235,22 +190,12 @@ curl "http://localhost:3001/books/search?limit=10&cursor=eyJjcmVhdGVkX2F0IjoiMjA
 
 ### Search Parameters
 
-- `title` - Filter by title with trigram index support for fast partial matching
-- `author` - Filter by author with trigram index support for fast partial matching  
-- `min_rating` / `max_rating` - Rating range filter (1.0-5.0) with partial index optimization
-- `search_query` - Enterprise full-text search with materialized tsvector
+- `title` / `author` - Fast partial text matching with trigram indexes
+- `min_rating` / `max_rating` - Rating range filter (1.0-5.0)
+- `search_query` - Full-text search with materialized search vectors
 - `limit` - Results per page (default: 10, max: 100)
-- `cursor` - High-performance cursor pagination using sequential ID
-- `sort_by` - Sort field: `created_at`, `title`, `author`, `rating` with covering indexes
-- `sort_order` - Sort direction: `asc` or `desc`
-
-### 🚀 **Performance Characteristics**
-
-- **Text Searches**: Sub-300ms response time for partial text matching
-- **Complex Filters**: Sub-800ms for multi-column filtered searches  
-- **Pagination**: <100ms at any depth with cursor-based pagination
-- **Full-Text Search**: 50-100ms for complex search queries
-- **Concurrent Load**: Supports 5000+ concurrent searches
+- `cursor` - Signed cursor pagination for security and performance
+- `sort_by` / `sort_order` - Flexible sorting with optimized indexes
 
 ## 🧪 Testing
 
@@ -280,12 +225,12 @@ pnpm test:types     # Type checking
 
 ## 📖 Documentation
 
-### Project Documentation
+### Documentation
 
 - [API Documentation](http://localhost:3001/docs) - Interactive Swagger UI
-- [Performance Guide](./PERFORMANCE.md) - **Detailed enterprise-scale optimization guide**
-- [Database Schema](./backend/src/database/migration/) - Database migration files
-- [Frontend Components](./frontend/src/components/) - Reusable UI components
+- [Performance Guide](./PERFORMANCE.md) - Enterprise-scale optimization
+- [Security Guide](./backend/SECURITY.md) - Security implementation
+- [Database Schema](./backend/src/database/migration/) - Migration files
 
 ### Architecture Documentation
 
@@ -317,17 +262,13 @@ pnpm migrate
 pnpm knex migrate:status
 ```
 
-#### **Enterprise Architecture Migration (20250905151310_optimize_books_performance)**
+#### Enterprise Architecture Migration
 
-This migration implements the enterprise-scale architecture:
-
-- **Synthetic Primary Key**: BIGINT sequential ID for optimal performance
-- **Trigram Extensions**: Enables pg_trgm for fast partial text search
-- **Advanced Indexes**: 12+ specialized indexes for different query patterns
-- **Materialized FTS**: Pre-computed search vectors with auto-update triggers
-- **Table Optimization**: Tuned autovacuum and storage parameters
-
-**Production Ready**: Migration uses `CONCURRENTLY` index creation for zero-downtime deployment.
+Key migration `20250905151310_optimize_books_performance` implements:
+- Dual primary key strategy (BIGINT + UUID)
+- Specialized indexes for optimal query performance
+- Materialized full-text search with auto-update triggers
+- Zero-downtime deployment with `CONCURRENTLY` index creation
 
 ### Monitoring & Debugging
 

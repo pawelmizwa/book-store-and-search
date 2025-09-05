@@ -6,6 +6,7 @@ import { BookRepository, PaginatedResult } from "../domain/book.repository";
 import { BookEntity, BookProperties } from "../domain/book.entity";
 import { CreateBookProperties, BookSearchOptions } from "@book-store/shared";
 import { InvalidCursorError } from "../domain/errors/book.domain-error";
+import { CursorSecurity } from "src/utils/cursor-security";
 
 interface CursorData {
   created_at: string;
@@ -16,6 +17,7 @@ interface CursorData {
 export class BookPgRepository extends PgRepository implements BookRepository {
   protected schema = "book";
   protected tableName = "books";
+  private cursorSecurity = new CursorSecurity();
 
   constructor(knex: TransactionHost<TransactionalAdapterKnex>) {
     super(knex);
@@ -59,13 +61,21 @@ export class BookPgRepository extends PgRepository implements BookRepository {
       const { title, author, min_rating, max_rating, search_query } = options.filters;
 
       if (title) {
-        // Use trigram index for fast partial matching
-        query = query.whereRaw("title % ? OR LOWER(title) LIKE LOWER(?)", [title, `%${title}%`]);
+        // Safe parameterized query for title search
+        query = query.where(builder => {
+          builder
+            .where('title', 'ilike', `%${title}%`)
+            .orWhereRaw('title % ?', [title]); // Keep trigram for performance, but safely parameterized
+        });
       }
 
       if (author) {
-        // Use trigram index for fast partial matching
-        query = query.whereRaw("author % ? OR LOWER(author) LIKE LOWER(?)", [author, `%${author}%`]);
+        // Safe parameterized query for author search
+        query = query.where(builder => {
+          builder
+            .where('author', 'ilike', `%${author}%`)
+            .orWhereRaw('author % ?', [author]); // Keep trigram for performance, but safely parameterized
+        });
       }
 
       if (min_rating !== undefined) {
@@ -77,32 +87,40 @@ export class BookPgRepository extends PgRepository implements BookRepository {
       }
 
       if (search_query) {
-        // Use optimized materialized search vector with custom configuration
-        query = query.whereRaw(
-          "search_vector @@ plainto_tsquery('book_search', ?)",
-          [search_query]
-        );
+        // Sanitize search query to prevent injection
+        const sanitizedQuery = search_query.replace(/[^\w\s]/g, '');
+        if (sanitizedQuery.trim()) {
+          // Use safe parameterized full-text search
+          query = query.whereRaw(
+            "search_vector @@ plainto_tsquery('book_search', ?)",
+            [sanitizedQuery]
+          );
+        }
       }
     }
 
     // Handle cursor pagination
     if (options.cursor) {
-      const cursorData = this.decodeCursor(options.cursor);
-      query = query.where(builder => {
-        if (options.sort_order === "desc") {
-          builder.where("created_at", "<", cursorData.created_at).orWhere(subBuilder => {
-            subBuilder
-              .where("created_at", "=", cursorData.created_at)
-              .andWhere("id", "<", cursorData.id);
-          });
-        } else {
-          builder.where("created_at", ">", cursorData.created_at).orWhere(subBuilder => {
-            subBuilder
-              .where("created_at", "=", cursorData.created_at)
-              .andWhere("id", ">", cursorData.id);
-          });
-        }
-      });
+      try {
+        const cursorData = this.cursorSecurity.decodeCursor(options.cursor);
+        query = query.where(builder => {
+          if (options.sort_order === "desc") {
+            builder.where("created_at", "<", cursorData.created_at).orWhere(subBuilder => {
+              subBuilder
+                .where("created_at", "=", cursorData.created_at)
+                .andWhere("id", "<", cursorData.id);
+            });
+          } else {
+            builder.where("created_at", ">", cursorData.created_at).orWhere(subBuilder => {
+              subBuilder
+                .where("created_at", "=", cursorData.created_at)
+                .andWhere("id", ">", cursorData.id);
+            });
+          }
+        });
+      } catch (error) {
+        throw new InvalidCursorError();
+      }
     }
 
     // Apply sorting
@@ -128,7 +146,7 @@ export class BookPgRepository extends PgRepository implements BookRepository {
     let next_cursor: string | undefined;
     if (has_next_page && data.length > 0) {
       const lastBook = data[data.length - 1];
-      next_cursor = this.encodeCursor({
+      next_cursor = this.cursorSecurity.encodeCursor({
         created_at: lastBook.created_at.toISOString(),
         id: lastBook.props.id,
       });
@@ -161,22 +179,4 @@ export class BookPgRepository extends PgRepository implements BookRepository {
     };
   }
 
-  private encodeCursor(data: CursorData): string {
-    return Buffer.from(JSON.stringify(data)).toString("base64");
-  }
-
-  private decodeCursor(cursor: string): CursorData {
-    try {
-      const decoded = Buffer.from(cursor, "base64").toString("utf-8");
-      const data = JSON.parse(decoded);
-
-      if (!data.created_at || !data.id) {
-        throw new Error("Invalid cursor format");
-      }
-
-      return data;
-    } catch (error) {
-      throw new InvalidCursorError();
-    }
-  }
 }

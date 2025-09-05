@@ -198,12 +198,22 @@ describe("BookPgRepository", () => {
         filters: { title: "gatsby" },
       };
 
+      // Set up a sub-query builder mock for the where clause
+      const subQueryBuilder = {
+        where: vi.fn().mockReturnThis(),
+        orWhereRaw: vi.fn().mockReturnThis(),
+      };
+      queryBuilder.where.mockImplementation((callback) => {
+        callback(subQueryBuilder);
+        return queryBuilder;
+      });
+
       await repository.search(optionsWithFilter);
 
-      expect(queryBuilder.whereRaw).toHaveBeenCalledWith(
-        "title % ? OR LOWER(title) LIKE LOWER(?)",
-        ["gatsby", "%gatsby%"]
-      );
+      // Expect the new secure where clause structure
+      expect(queryBuilder.where).toHaveBeenCalledWith(expect.any(Function));
+      expect(subQueryBuilder.where).toHaveBeenCalledWith('title', 'ilike', '%gatsby%');
+      expect(subQueryBuilder.orWhereRaw).toHaveBeenCalledWith("title % ?", ["gatsby"]);
     });
 
     it("should apply author filter", async () => {
@@ -212,12 +222,22 @@ describe("BookPgRepository", () => {
         filters: { author: "fitzgerald" },
       };
 
+      // Set up a sub-query builder mock for the where clause
+      const subQueryBuilder = {
+        where: vi.fn().mockReturnThis(),
+        orWhereRaw: vi.fn().mockReturnThis(),
+      };
+      queryBuilder.where.mockImplementation((callback) => {
+        callback(subQueryBuilder);
+        return queryBuilder;
+      });
+
       await repository.search(optionsWithFilter);
 
-      expect(queryBuilder.whereRaw).toHaveBeenCalledWith(
-        "author % ? OR LOWER(author) LIKE LOWER(?)",
-        ["fitzgerald", "%fitzgerald%"]
-      );
+      // Expect the new secure where clause structure  
+      expect(queryBuilder.where).toHaveBeenCalledWith(expect.any(Function));
+      expect(subQueryBuilder.where).toHaveBeenCalledWith('author', 'ilike', '%fitzgerald%');
+      expect(subQueryBuilder.orWhereRaw).toHaveBeenCalledWith("author % ?", ["fitzgerald"]);
     });
 
     it("should apply rating filters", async () => {
@@ -247,12 +267,12 @@ describe("BookPgRepository", () => {
     });
 
     it("should handle cursor pagination for descending order", async () => {
-      const cursor = Buffer.from(
-        JSON.stringify({
-          created_at: "2024-01-01T12:00:00Z",
-          id: 123,
-        })
-      ).toString("base64");
+      // Create a valid signed cursor using CursorSecurity
+      const cursorSecurity = (repository as any).cursorSecurity;
+      const cursor = cursorSecurity.encodeCursor({
+        created_at: "2024-01-01T12:00:00Z",
+        id: 123,
+      });
 
       const optionsWithCursor: BookSearchOptions = {
         ...mockSearchOptions,
@@ -266,12 +286,12 @@ describe("BookPgRepository", () => {
     });
 
     it("should handle cursor pagination for ascending order", async () => {
-      const cursor = Buffer.from(
-        JSON.stringify({
-          created_at: "2024-01-01T12:00:00Z",
-          id: 123,
-        })
-      ).toString("base64");
+      // Create a valid signed cursor using CursorSecurity  
+      const cursorSecurity = (repository as any).cursorSecurity;
+      const cursor = cursorSecurity.encodeCursor({
+        created_at: "2024-01-01T12:00:00Z",
+        id: 123,
+      });
 
       const optionsWithCursor: BookSearchOptions = {
         ...mockSearchOptions,
@@ -388,33 +408,41 @@ describe("BookPgRepository", () => {
     });
   });
 
-  describe("cursor encoding/decoding", () => {
-    it("should encode and decode cursor correctly", () => {
-      const encodeCursor = (repository as any).encodeCursor.bind(repository);
-      const decodeCursor = (repository as any).decodeCursor.bind(repository);
-
+  describe("cursor security integration", () => {
+    it("should use CursorSecurity for encoding and decoding", () => {
+      const cursorSecurity = (repository as any).cursorSecurity;
+      
       const cursorData = {
         created_at: "2024-01-01T12:00:00Z",
         id: 123,
       };
 
-      const encoded = encodeCursor(cursorData);
-      const decoded = decodeCursor(encoded);
+      const encoded = cursorSecurity.encodeCursor(cursorData);
+      const decoded = cursorSecurity.decodeCursor(encoded);
 
       expect(decoded).toEqual(cursorData);
     });
 
-    it("should throw error for invalid base64 cursor", () => {
-      const decodeCursor = (repository as any).decodeCursor.bind(repository);
+    it("should throw InvalidCursorError for tampered cursors", async () => {
+      const invalidCursor = "tampered-cursor-data";
+      
+      const optionsWithInvalidCursor: BookSearchOptions = {
+        limit: 10,
+        cursor: invalidCursor,
+      };
 
-      expect(() => decodeCursor("invalid-base64!!!")).toThrow(InvalidCursorError);
+      await expect(repository.search(optionsWithInvalidCursor)).rejects.toThrow(InvalidCursorError);
     });
 
-    it("should throw error for cursor with invalid JSON", () => {
-      const decodeCursor = (repository as any).decodeCursor.bind(repository);
-      const invalidJsonCursor = Buffer.from("invalid json").toString("base64");
+    it("should throw InvalidCursorError for malformed cursor data", async () => {
+      const malformedCursor = Buffer.from("invalid json").toString("base64");
+      
+      const optionsWithMalformedCursor: BookSearchOptions = {
+        limit: 10,
+        cursor: malformedCursor,
+      };
 
-      expect(() => decodeCursor(invalidJsonCursor)).toThrow(InvalidCursorError);
+      await expect(repository.search(optionsWithMalformedCursor)).rejects.toThrow(InvalidCursorError);
     });
   });
 });
