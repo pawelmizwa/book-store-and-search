@@ -9,7 +9,7 @@ import { InvalidCursorError } from "../domain/errors/book.domain-error";
 
 interface CursorData {
   created_at: string;
-  book_id: string;
+  id: number; // Use synthetic primary key for cursor pagination
 }
 
 @Injectable()
@@ -23,8 +23,8 @@ export class BookPgRepository extends PgRepository implements BookRepository {
 
   async create(book_data: CreateBookProperties): Promise<BookEntity> {
     const book = BookEntity.create(book_data);
-    // Extract only database columns (exclude 'id' which is just an alias for book_id)
-    const { id: _, ...dbProps } = book.props;
+    // Extract only database columns (exclude synthetic 'id' - it will be auto-generated)
+    const { id: _, search_vector: __, ...dbProps } = book.props;
     const [created] = await this.query.insert(dbProps).returning("*");
     return new BookEntity(this.mapRowToEntity(created));
   }
@@ -59,11 +59,13 @@ export class BookPgRepository extends PgRepository implements BookRepository {
       const { title, author, min_rating, max_rating, search_query } = options.filters;
 
       if (title) {
-        query = query.where("title", "ilike", `%${title}%`);
+        // Use trigram index for fast partial matching
+        query = query.whereRaw("title % ? OR LOWER(title) LIKE LOWER(?)", [title, `%${title}%`]);
       }
 
       if (author) {
-        query = query.where("author", "ilike", `%${author}%`);
+        // Use trigram index for fast partial matching
+        query = query.whereRaw("author % ? OR LOWER(author) LIKE LOWER(?)", [author, `%${author}%`]);
       }
 
       if (min_rating !== undefined) {
@@ -75,9 +77,9 @@ export class BookPgRepository extends PgRepository implements BookRepository {
       }
 
       if (search_query) {
-        // Use PostgreSQL full-text search
+        // Use optimized materialized search vector with custom configuration
         query = query.whereRaw(
-          "to_tsvector('english', title || ' ' || author) @@ plainto_tsquery('english', ?)",
+          "search_vector @@ plainto_tsquery('book_search', ?)",
           [search_query]
         );
       }
@@ -91,13 +93,13 @@ export class BookPgRepository extends PgRepository implements BookRepository {
           builder.where("created_at", "<", cursorData.created_at).orWhere(subBuilder => {
             subBuilder
               .where("created_at", "=", cursorData.created_at)
-              .andWhere("book_id", "<", cursorData.book_id);
+              .andWhere("id", "<", cursorData.id);
           });
         } else {
           builder.where("created_at", ">", cursorData.created_at).orWhere(subBuilder => {
             subBuilder
               .where("created_at", "=", cursorData.created_at)
-              .andWhere("book_id", ">", cursorData.book_id);
+              .andWhere("id", ">", cursorData.id);
           });
         }
       });
@@ -108,12 +110,12 @@ export class BookPgRepository extends PgRepository implements BookRepository {
     const sort_order = options.sort_order || "desc";
 
     if (sort_by === "created_at") {
-      query = query.orderBy("created_at", sort_order).orderBy("book_id", sort_order);
+      query = query.orderBy("created_at", sort_order).orderBy("id", sort_order);
     } else {
       query = query
         .orderBy(sort_by, sort_order)
         .orderBy("created_at", sort_order)
-        .orderBy("book_id", sort_order);
+        .orderBy("id", sort_order);
     }
 
     // Limit + 1 to check if there's a next page
@@ -128,7 +130,7 @@ export class BookPgRepository extends PgRepository implements BookRepository {
       const lastBook = data[data.length - 1];
       next_cursor = this.encodeCursor({
         created_at: lastBook.created_at.toISOString(),
-        book_id: lastBook.book_id,
+        id: lastBook.props.id,
       });
     }
 
@@ -146,13 +148,14 @@ export class BookPgRepository extends PgRepository implements BookRepository {
 
   private mapRowToEntity(row: any): BookProperties {
     return {
-      id: row.book_id,
-      book_id: row.book_id,
+      id: row.id, // Synthetic sequential primary key
+      book_id: row.book_id, // UUID for external references
       title: row.title,
       author: row.author,
       isbn: row.isbn,
       pages: row.pages,
       rating: row.rating ? parseFloat(row.rating) : undefined,
+      search_vector: row.search_vector || undefined,
       created_at: new Date(row.created_at),
       updated_at: new Date(row.updated_at),
     };
@@ -167,7 +170,7 @@ export class BookPgRepository extends PgRepository implements BookRepository {
       const decoded = Buffer.from(cursor, "base64").toString("utf-8");
       const data = JSON.parse(decoded);
 
-      if (!data.created_at || !data.book_id) {
+      if (!data.created_at || !data.id) {
         throw new Error("Invalid cursor format");
       }
 

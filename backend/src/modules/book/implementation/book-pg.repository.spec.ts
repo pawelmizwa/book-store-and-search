@@ -40,12 +40,14 @@ describe("BookPgRepository", () => {
   };
 
   const mockDbRow = {
+    id: 1, // Synthetic sequential primary key
     book_id: "550e8400-e29b-41d4-a716-446655440000",
     title: "The Great Gatsby",
     author: "F. Scott Fitzgerald",
     isbn: "978-0-7432-7356-5",
     pages: 180,
     rating: "4.5",
+    search_vector: "'gatsby':1 'great':2 'scott':3 'fitzgerald':4", // Materialized tsvector
     created_at: "2024-01-01T12:00:00Z",
     updated_at: "2024-01-01T12:00:00Z",
   };
@@ -184,7 +186,7 @@ describe("BookPgRepository", () => {
 
       expect(queryBuilder.clone).toHaveBeenCalled();
       expect(queryBuilder.orderBy).toHaveBeenCalledWith("created_at", "desc");
-      expect(queryBuilder.orderBy).toHaveBeenCalledWith("book_id", "desc");
+      expect(queryBuilder.orderBy).toHaveBeenCalledWith("id", "desc");
       expect(queryBuilder.limit).toHaveBeenCalledWith(11); // limit + 1
       expect(result.data).toHaveLength(1);
       expect(result.has_next_page).toBe(false);
@@ -198,7 +200,10 @@ describe("BookPgRepository", () => {
 
       await repository.search(optionsWithFilter);
 
-      expect(queryBuilder.where).toHaveBeenCalledWith("title", "ilike", "%gatsby%");
+      expect(queryBuilder.whereRaw).toHaveBeenCalledWith(
+        "title % ? OR LOWER(title) LIKE LOWER(?)",
+        ["gatsby", "%gatsby%"]
+      );
     });
 
     it("should apply author filter", async () => {
@@ -209,7 +214,10 @@ describe("BookPgRepository", () => {
 
       await repository.search(optionsWithFilter);
 
-      expect(queryBuilder.where).toHaveBeenCalledWith("author", "ilike", "%fitzgerald%");
+      expect(queryBuilder.whereRaw).toHaveBeenCalledWith(
+        "author % ? OR LOWER(author) LIKE LOWER(?)",
+        ["fitzgerald", "%fitzgerald%"]
+      );
     });
 
     it("should apply rating filters", async () => {
@@ -233,7 +241,7 @@ describe("BookPgRepository", () => {
       await repository.search(optionsWithFilter);
 
       expect(queryBuilder.whereRaw).toHaveBeenCalledWith(
-        "to_tsvector('english', title || ' ' || author) @@ plainto_tsquery('english', ?)",
+        "search_vector @@ plainto_tsquery('book_search', ?)",
         ["great gatsby"]
       );
     });
@@ -242,7 +250,7 @@ describe("BookPgRepository", () => {
       const cursor = Buffer.from(
         JSON.stringify({
           created_at: "2024-01-01T12:00:00Z",
-          book_id: "test-id",
+          id: 123,
         })
       ).toString("base64");
 
@@ -261,7 +269,7 @@ describe("BookPgRepository", () => {
       const cursor = Buffer.from(
         JSON.stringify({
           created_at: "2024-01-01T12:00:00Z",
-          book_id: "test-id",
+          id: 123,
         })
       ).toString("base64");
 
@@ -287,7 +295,7 @@ describe("BookPgRepository", () => {
 
       expect(queryBuilder.orderBy).toHaveBeenCalledWith("title", "asc");
       expect(queryBuilder.orderBy).toHaveBeenCalledWith("created_at", "asc");
-      expect(queryBuilder.orderBy).toHaveBeenCalledWith("book_id", "asc");
+      expect(queryBuilder.orderBy).toHaveBeenCalledWith("id", "asc");
     });
 
     it("should cap limit at 100", async () => {
@@ -357,13 +365,14 @@ describe("BookPgRepository", () => {
       const result = mapRowToEntity(mockDbRow);
 
       expect(result).toEqual({
-        id: mockDbRow.book_id,
+        id: mockDbRow.id,
         book_id: mockDbRow.book_id,
         title: mockDbRow.title,
         author: mockDbRow.author,
         isbn: mockDbRow.isbn,
         pages: mockDbRow.pages,
         rating: 4.5, // Should be parsed as float
+        search_vector: mockDbRow.search_vector,
         created_at: new Date(mockDbRow.created_at),
         updated_at: new Date(mockDbRow.updated_at),
       });
@@ -386,7 +395,7 @@ describe("BookPgRepository", () => {
 
       const cursorData = {
         created_at: "2024-01-01T12:00:00Z",
-        book_id: "test-id",
+        id: 123,
       };
 
       const encoded = encodeCursor(cursorData);

@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-export abstract class Entity<T extends { id: string }> {
+export abstract class Entity<T extends { id: string | number }> {
   protected _: T;
   protected readonly schema: z.ZodSchema<T>;
 
