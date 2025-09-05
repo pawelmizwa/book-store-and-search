@@ -21,6 +21,7 @@
     "migrate:make": "read -p 'Enter migration name: ' migrationName && knex migrate:make $migrationName && ts-node ./scripts/create-migration-sql-file.ts $migrationName"
   },
   "dependencies": {
+    "@book-store/shared": "workspace:*",
     "@fastify/helmet": "^11.1.1",
     "@fastify/static": "^7.0.4",
     "@nestjs-cls/transactional": "^3.1.0",

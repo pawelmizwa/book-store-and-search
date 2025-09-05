@@ -1,7 +1,7 @@
 import React, { ReactElement } from 'react';
 import { render, RenderOptions } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { Book } from '../types/book.types';
+import { Book } from '@book-store/shared';
 
 // Custom render function that includes QueryClient provider
 const createTestQueryClient = () =>

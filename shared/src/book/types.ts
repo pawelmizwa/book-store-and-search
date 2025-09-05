@@ -50,3 +50,41 @@ export interface PaginatedBooksResponse {
   has_next_page: boolean;
   next_cursor?: string;
 }
+
+// Domain entity types for backend
+export interface BookEntity {
+  id: string;
+  book_id: string;
+  title: string;
+  author: string;
+  isbn?: string | null;
+  pages?: number | null;
+  rating?: number | null;
+  created_at: Date;
+  updated_at: Date;
+}
+
+export interface CreateBookProperties {
+  title: string;
+  author: string;
+  isbn?: string | null;
+  pages?: number | null;
+  rating?: number | null;
+}
+
+// Alternative type using Pick for type safety
+export type CreateBookEntityProperties = Pick<
+  BookEntity,
+  "title" | "author" | "isbn" | "pages" | "rating"
+>;
+
+export interface PaginationOptions {
+  limit: number;
+  cursor?: string;
+}
+
+export interface BookSearchOptions extends PaginationOptions {
+  filters?: BookSearchFilters;
+  sort_by?: 'created_at' | 'title' | 'author' | 'rating';
+  sort_order?: 'asc' | 'desc';
+}

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Book } from '../../types/book.types';
+import { Book } from '@book-store/shared';
 import { Button } from '../ui/Button';
 import { cn } from '../../utils/cn';
 

@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
-import { BookEntity, CreateBookProperties } from "./book.entity";
+import { BookEntity } from "./book.entity";
+import { CreateBookProperties } from "@book-store/shared";
 
 describe("BookEntity", () => {
   const validBookData: CreateBookProperties = {

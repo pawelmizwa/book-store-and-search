@@ -42,7 +42,7 @@ export class AllExceptionsFilter extends BaseExceptionFilter {
     if (exception instanceof ZodError) {
       return {
         message: "Validation failed",
-        errors: exception.issues.map((error: any) => ({
+        errors: exception.issues.map((error) => ({
           message: error.message,
           path: error.path.join("."),
         })),

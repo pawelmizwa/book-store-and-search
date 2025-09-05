@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { BooksClient } from "../clients/books-client";
-import { CreateBookRequest, UpdateBookRequest, BookSearchParams } from "../types/book.types";
+import { CreateBookRequest, UpdateBookRequest, BookSearchParams } from "@book-store/shared";
 
 // Allow dependency injection for testing
 let booksClient: BooksClient;

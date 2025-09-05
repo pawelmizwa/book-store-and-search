@@ -5,8 +5,7 @@ import { BookList } from '../components/books/BookList';
 import { BookSearchForm } from '../components/forms/BookSearchForm';
 import { BookForm } from '../components/forms/BookForm';
 import { useSearchBooks, useCreateBook, useUpdateBook, useDeleteBook } from '../hooks/useBooks';
-import { Book, BookSearchParams } from '../types/book.types';
-import { CreateBookFormData, SearchBooksFormData } from '../schemas/book.schemas';
+import { Book, BookSearchParams, CreateBookFormData, SearchBooksFormData } from '@book-store/shared';
 
 export default function HomePage() {
   const [searchParams, setSearchParams] = useState<BookSearchParams>({

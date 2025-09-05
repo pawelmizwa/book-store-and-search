@@ -1,6 +1,7 @@
 import { Injectable, Inject } from "@nestjs/common";
 import { BookRepository, PaginatedResult } from "./book.repository";
-import { BookEntity, CreateBookProperties, BookSearchOptions } from "./book.entity";
+import { BookEntity } from "./book.entity";
+import { CreateBookProperties, BookSearchOptions } from "@book-store/shared";
 import { BookNotFoundError, DuplicateIsbnError } from "./errors/book.domain-error";
 import { BOOK_REPOSITORY } from "../constants";
 

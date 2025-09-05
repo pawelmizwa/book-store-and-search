@@ -1,8 +1,14 @@
-import { ApiClient } from './base/base-api-client';
-import { Book, CreateBookRequest, UpdateBookRequest, BookSearchParams, PaginatedBooksResponse } from '../types/book.types';
+import { ApiClient } from "./base/base-api-client";
+import {
+  Book,
+  CreateBookRequest,
+  UpdateBookRequest,
+  BookSearchParams,
+  PaginatedBooksResponse,
+} from "@book-store/shared";
 
 export class BooksClient extends ApiClient {
-  private readonly booksPath = '/books';
+  private readonly booksPath = "/books";
 
   async createBook(book_data: CreateBookRequest): Promise<Book> {
     return this.post<Book>(this.booksPath, book_data);
@@ -22,32 +28,34 @@ export class BooksClient extends ApiClient {
 
   async searchBooks(params: BookSearchParams = {}): Promise<PaginatedBooksResponse> {
     const searchParams = new URLSearchParams();
-    
+
     // Add all defined parameters
     Object.entries(params).forEach(([key, value]) => {
-      if (value !== undefined && value !== null && value !== '') {
+      if (value !== undefined && value !== null && value !== "") {
         searchParams.append(key, value.toString());
       }
     });
 
     const queryString = searchParams.toString();
-    const url = queryString ? `${this.booksPath}/search?${queryString}` : `${this.booksPath}/search`;
-    
+    const url = queryString
+      ? `${this.booksPath}/search?${queryString}`
+      : `${this.booksPath}/search`;
+
     return this.get<PaginatedBooksResponse>(url);
   }
 
   async getAllBooks(params: BookSearchParams = {}): Promise<PaginatedBooksResponse> {
     const searchParams = new URLSearchParams();
-    
+
     Object.entries(params).forEach(([key, value]) => {
-      if (value !== undefined && value !== null && value !== '') {
+      if (value !== undefined && value !== null && value !== "") {
         searchParams.append(key, value.toString());
       }
     });
 
     const queryString = searchParams.toString();
     const url = queryString ? `${this.booksPath}?${queryString}` : this.booksPath;
-    
+
     return this.get<PaginatedBooksResponse>(url);
   }
 }

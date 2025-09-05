@@ -4,7 +4,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
 import { Label } from '../ui/Label';
-import { searchBooksSchema, SearchBooksFormData } from '../../schemas/book.schemas';
+import { searchBooksFormSchema, SearchBooksFormData } from '@book-store/shared';
 
 interface BookSearchFormProps {
   onSearch: (data: SearchBooksFormData) => void;
@@ -25,7 +25,7 @@ export function BookSearchForm({
     reset,
     formState: { errors },
   } = useForm({
-    resolver: zodResolver(searchBooksSchema),
+    resolver: zodResolver(searchBooksFormSchema),
     defaultValues: {
       title: '',
       author: '',

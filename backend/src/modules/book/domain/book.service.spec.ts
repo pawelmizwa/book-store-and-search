@@ -1,7 +1,8 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { BookService } from "./book.service";
 import { BookRepository } from "./book.repository";
-import { BookEntity, CreateBookProperties } from "./book.entity";
+import { BookEntity } from "./book.entity";
+import { CreateBookProperties } from "@book-store/shared";
 import { BookNotFoundError, DuplicateIsbnError } from "./errors/book.domain-error";
 
 describe("BookService", () => {

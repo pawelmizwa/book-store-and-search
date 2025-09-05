@@ -1,4 +1,5 @@
-import { BookEntity, CreateBookProperties, BookSearchOptions } from "./book.entity";
+import { BookEntity } from "./book.entity";
+import { CreateBookProperties, BookSearchOptions } from "@book-store/shared";
 
 export interface PaginatedResult<T> {
   data: T[];

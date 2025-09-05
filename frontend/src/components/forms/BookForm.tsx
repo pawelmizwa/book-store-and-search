@@ -4,8 +4,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
 import { Label } from '../ui/Label';
-import { createBookSchema, CreateBookFormData } from '../../schemas/book.schemas';
-import { Book } from '../../types/book.types';
+import { createBookFormSchema, CreateBookFormData, Book } from '@book-store/shared';
 
 interface BookFormProps {
   initialData?: Book;
@@ -27,7 +26,7 @@ export function BookForm({
     handleSubmit,
     formState: { errors },
   } = useForm({
-    resolver: zodResolver(createBookSchema),
+    resolver: zodResolver(createBookFormSchema),
     defaultValues: initialData
       ? {
           title: initialData.title,

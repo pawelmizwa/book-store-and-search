@@ -3,12 +3,8 @@ import { TransactionHost } from "@nestjs-cls/transactional";
 import { TransactionalAdapterKnex } from "@nestjs-cls/transactional-adapter-knex";
 import { PgRepository } from "src/database/pg-repository";
 import { BookRepository, PaginatedResult } from "../domain/book.repository";
-import {
-  BookEntity,
-  CreateBookProperties,
-  BookSearchOptions,
-  BookProperties,
-} from "../domain/book.entity";
+import { BookEntity, BookProperties } from "../domain/book.entity";
+import { CreateBookProperties, BookSearchOptions } from "@book-store/shared";
 import { InvalidCursorError } from "../domain/errors/book.domain-error";
 
 interface CursorData {

@@ -1,9 +1,10 @@
 import { Body, Controller, Delete, Get, Param, Post, Put, Query, UsePipes } from "@nestjs/common";
 import { ApiOperation, ApiResponse, ApiTags, ApiParam } from "@nestjs/swagger";
 import { BookService } from "../domain/book.service";
-import { CreateBookDtoClass, createBookDtoSchema } from "./dtos/create-book.dto";
-import { UpdateBookDtoClass, updateBookDtoSchema } from "./dtos/update-book.dto";
-import { BookSearchDtoClass, bookSearchDtoSchema } from "./dtos/book-search.dto";
+import { createBookApiSchema, updateBookApiSchema, bookSearchApiSchema } from "@book-store/shared";
+import { CreateBookDtoClass } from "./dtos/create-book.dto";
+import { UpdateBookDtoClass } from "./dtos/update-book.dto";
+import { BookSearchDtoClass } from "./dtos/book-search.dto";
 import { BookResponseDto, PaginatedBooksResponseDto } from "./dtos/book-response.dto";
 import { ZodValidationPipe } from "src/validation/zod-validation.pipe";
 
@@ -23,7 +24,7 @@ export class BookController {
     status: 400,
     description: "Invalid book data or duplicate ISBN",
   })
-  @UsePipes(new ZodValidationPipe(createBookDtoSchema))
+  @UsePipes(new ZodValidationPipe(createBookApiSchema))
   async createBook(@Body() createBookDto: CreateBookDtoClass): Promise<BookResponseDto> {
     const book = await this.bookService.createBook(createBookDto);
     return BookResponseDto.fromEntity(book);
@@ -42,7 +43,7 @@ export class BookController {
   })
   async searchBooks(@Query() searchDto: BookSearchDtoClass): Promise<PaginatedBooksResponseDto> {
     // Validate with Zod
-    const validatedDto = bookSearchDtoSchema.parse(searchDto);
+    const validatedDto = bookSearchApiSchema.parse(searchDto);
 
     const searchOptions = {
       limit: validatedDto.limit,
@@ -112,7 +113,7 @@ export class BookController {
     status: 400,
     description: "Invalid book data or duplicate ISBN",
   })
-  @UsePipes(new ZodValidationPipe(updateBookDtoSchema))
+  @UsePipes(new ZodValidationPipe(updateBookApiSchema))
   async updateBook(
     @Param("book_id") book_id: string,
     @Body() updateBookDto: UpdateBookDtoClass

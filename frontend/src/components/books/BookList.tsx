@@ -1,7 +1,7 @@
 import React from 'react';
 import { BookCard } from './BookCard';
 import { Button } from '../ui/Button';
-import { Book } from '../../types/book.types';
+import { Book } from '@book-store/shared';
 
 interface BookListProps {
   books: Book[];

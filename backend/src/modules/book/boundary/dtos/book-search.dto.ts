@@ -1,21 +1,7 @@
 import { ApiPropertyOptional } from "@nestjs/swagger";
 import { Transform, Type } from "class-transformer";
 import { IsOptional, IsString, IsNumber, IsIn, Min, Max } from "class-validator";
-import { z } from "zod";
-
-export const bookSearchDtoSchema = z.object({
-  title: z.string().optional(),
-  author: z.string().optional(),
-  min_rating: z.coerce.number().min(1.0).max(5.0).optional(),
-  max_rating: z.coerce.number().min(1.0).max(5.0).optional(),
-  search_query: z.string().optional(),
-  limit: z.coerce.number().int().min(1).max(100).default(10),
-  cursor: z.string().optional(),
-  sort_by: z.enum(["created_at", "title", "author", "rating"]).default("created_at"),
-  sort_order: z.enum(["asc", "desc"]).default("desc"),
-});
-
-export type BookSearchDto = z.infer<typeof bookSearchDtoSchema>;
+import { BookSearchDto } from "@book-store/shared";
 
 export class BookSearchDtoClass implements BookSearchDto {
   @ApiPropertyOptional({

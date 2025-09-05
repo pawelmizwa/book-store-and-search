@@ -1,45 +1,17 @@
-import { z } from "zod";
 import { Entity } from "src/core/entity";
 import { v4 as uuidv4 } from "uuid";
 import { PartialBy } from "src/types";
+import { 
+  bookEntitySchema, 
+  BookEntityData, 
+  CreateBookProperties,
+  BookSearchFilters,
+  PaginationOptions,
+  BookSearchOptions 
+} from "@book-store/shared";
 
-export const bookEntitySchema = z.object({
-  id: z.string().uuid(),
-  book_id: z.string().uuid(),
-  title: z.string().min(1).max(500),
-  author: z.string().min(1).max(255),
-  isbn: z.string().min(1).max(50).nullable().optional(),
-  pages: z.number().int().positive().nullable().optional(),
-  rating: z.number().min(1.0).max(5.0).nullable().optional(),
-  created_at: z.date(),
-  updated_at: z.date(),
-});
+export type BookProperties = BookEntityData;
 
-export type BookProperties = z.infer<typeof bookEntitySchema>;
-
-export type CreateBookProperties = Pick<
-  BookProperties,
-  "title" | "author" | "isbn" | "pages" | "rating"
->;
-
-export interface BookSearchFilters {
-  title?: string;
-  author?: string;
-  min_rating?: number;
-  max_rating?: number;
-  search_query?: string;
-}
-
-export interface PaginationOptions {
-  limit: number;
-  cursor?: string; // base64 encoded cursor for pagination
-}
-
-export interface BookSearchOptions extends PaginationOptions {
-  filters?: BookSearchFilters;
-  sort_by?: "created_at" | "title" | "author" | "rating";
-  sort_order?: "asc" | "desc";
-}
 
 export class BookEntity extends Entity<BookProperties> {
   constructor(props: BookProperties) {
