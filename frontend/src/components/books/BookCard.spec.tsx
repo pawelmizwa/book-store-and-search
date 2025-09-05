@@ -30,7 +30,7 @@ describe('BookCard', () => {
     
     render(<BookCard book={mockBook} onEdit={onEdit} />);
 
-    await user.click(screen.getByLabelText(/edit book/i));
+    await user.click(screen.getByRole('button', { name: /edit/i }));
 
     expect(onEdit).toHaveBeenCalledWith(mockBook);
   });
@@ -41,8 +41,8 @@ describe('BookCard', () => {
     
     render(<BookCard book={mockBook} onDelete={onDelete} />);
 
-    await user.click(screen.getByLabelText(/delete book/i));
+    await user.click(screen.getByRole('button', { name: /delete/i }));
 
-    expect(onDelete).toHaveBeenCalledWith(mockBook.book_id);
+    expect(onDelete).toHaveBeenCalledWith(mockBook);
   });
 });
