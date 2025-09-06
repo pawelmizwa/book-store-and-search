@@ -70,8 +70,8 @@ export class BookSearchDtoClass implements BookSearchDto {
   limit: number = 10;
 
   @ApiPropertyOptional({
-    description: "Cursor for pagination (base64 encoded)",
-    example: "eyJjcmVhdGVkX2F0IjoiMjAyNC0wMS0wMVQxMjowMDowMFoiLCJib29rX2lkIjoiYWJjZGVmIn0=",
+    description: "Secure cursor for pagination (base64 encoded with HMAC signature). Cursors are cryptographically signed and have a 24-hour expiration for security. Use the next_cursor from previous responses.",
+    example: "eyJkYXRhIjp7ImNyZWF0ZWRfYXQiOiIyMDI0LTAxLTAxVDEyOjAwOjAwWiIsImlkIjoxMjN9LCJzaWduYXR1cmUiOiJhYmMxMjMiLCJ0aW1lc3RhbXAiOjE3MDQwNjcyMDB9MDA",
   })
   @IsOptional()
   @IsString()

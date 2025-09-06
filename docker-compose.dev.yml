@@ -1,28 +1,34 @@
 services:
   backend:
-    build:
-      context: ./backend
-      dockerfile: Dockerfile
-      target: development
     environment:
-      NODE_ENV: development
-      DATABASE_URL: postgresql://bookstore_user:bookstore_password@postgres:5432/bookstore
-      PORT: 3001
-    command: pnpm start:dev
+      ENVIRONMENT: "dev"
+      DATABASE_URL: postgresql://bookstore_dev:bookstore_dev_password@postgres:5432/bookstore_dev  
+      DATABASE_POOL_SIZE: 5
+      PORT: 8080
     volumes:
-      - ./backend:/app
-      - /app/node_modules
+      - ./backend/src:/app/backend/src
+      - ./shared/src:/app/shared/src
+    command: ["pnpm", "start:dev"]
+    ports:
+      - "8080:8080"
+      - "9229:9229"  # Debug port
 
   frontend:
-    build:
-      context: ./frontend
-      dockerfile: Dockerfile
-      target: development
     environment:
+      NEXT_PUBLIC_API_URL: http://localhost:8080
       NODE_ENV: development
-      NEXT_PUBLIC_API_URL: http://localhost:3001
-    command: pnpm dev
     volumes:
-      - ./frontend:/app
-      - /app/node_modules
-      - /app/.next
+      - ./frontend/src:/app/frontend/src
+      - ./frontend/public:/app/frontend/public
+      - ./shared/src:/app/shared/src
+    command: ["pnpm", "dev"]
+    ports:
+      - "3000:3000"
+
+  postgres:
+    environment:
+      POSTGRES_DB: bookstore_dev
+      POSTGRES_USER: bookstore_dev
+      POSTGRES_PASSWORD: bookstore_dev_password
+    ports:
+      - "5433:5432"  # Different port for dev to avoid conflicts

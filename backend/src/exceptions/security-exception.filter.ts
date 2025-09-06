@@ -53,7 +53,8 @@ export class SecurityExceptionFilter implements ExceptionFilter {
       ...(process.env.NODE_ENV !== 'production' && { details: errorCode })
     };
 
-    response.status(status).send(errorResponse);
+    // Send response directly to avoid double exception handling
+    response.code(status).send(errorResponse);
   }
 
   private isSecurityRelatedError(status: number, message: string): boolean {

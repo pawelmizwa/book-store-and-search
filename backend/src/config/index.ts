@@ -16,7 +16,7 @@ export type Config = z.infer<typeof configSchema>;
 
 export default (): Config =>
   configSchema.parse({
-    environment: (process.env.ENVIRONMENT ?? Environment.LOCAL) as Environment,
+    environment: process.env.ENVIRONMENT ?? Environment.LOCAL,
     port: Number(process.env.PORT ?? 8080),
     logger: readLoggerConfig(),
     database: readDatabaseConfig(),

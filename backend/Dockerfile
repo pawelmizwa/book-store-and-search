@@ -1,52 +1,42 @@
-ARG NODE_VERSION=20
+# Backend Dockerfile
+FROM node:20-alpine
 
-# Base stage with common dependencies
-FROM node:${NODE_VERSION}-slim as base
-ENV PNPM_HOME="/pnpm"
-ENV PATH="$PNPM_HOME:$PATH"
-RUN corepack enable
-RUN corepack prepare pnpm@9 --activate
+# Install pnpm
+RUN corepack enable pnpm
 
-# Install curl for health checks and other utilities
-RUN apt-get update && apt-get install -y \
-    curl \
-    && rm -rf /var/lib/apt/lists/*
-
+# Set working directory
 WORKDIR /app
 
-# Dependencies stage
-FROM base as deps
-COPY package.json pnpm-lock.yaml ./
+# Copy root package files for workspace setup
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+
+# Copy shared package
+COPY shared/ ./shared/
+
+# Copy backend package files first for better layer caching
+COPY backend/package.json ./backend/
+
+# Install dependencies
 RUN pnpm install --frozen-lockfile
 
-# Development stage
-FROM base as development
-COPY package.json pnpm-lock.yaml ./
-RUN pnpm install --frozen-lockfile
-COPY . .
-# Remove any existing dist folder in development
-RUN rm -rf dist
-EXPOSE 3001
-CMD ["pnpm", "start:dev"]
+# Build shared package first
+RUN pnpm --filter=shared build
 
-# Build stage
-FROM base as build
-COPY package.json pnpm-lock.yaml ./
-RUN pnpm install --frozen-lockfile
-COPY . .
+# Copy backend source code
+COPY backend/ ./backend/
+
+# Set working directory to backend for build
+WORKDIR /app/backend
+
+# Build backend
 RUN pnpm build
 
-# Production stage
-FROM base as production
-ARG APP_VERSION
-ENV APP_VERSION=$APP_VERSION
-ENV NODE_ENV=production
+# Expose port
+EXPOSE 8080
 
-COPY package.json pnpm-lock.yaml ./
-RUN pnpm install --frozen-lockfile --prod
+# Health check
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+  CMD curl -f http://localhost:8080/health || exit 1
 
-COPY --from=build /app/dist ./dist
-
-EXPOSE 3001
-USER node
+# Start the application
 CMD ["pnpm", "start:prod"]

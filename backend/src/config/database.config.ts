@@ -9,7 +9,7 @@ export type DatabaseConfig = z.infer<typeof databaseConfigSchema>;
 
 export function readDatabaseConfig() {
   return databaseConfigSchema.parse({
-    url: process.env.DATABASE_URL,
+    url: process.env.DATABASE_URL ?? "postgresql://bookstore:bookstore_password@localhost:5433/bookstore",
     poolSize: Number(process.env.DATABASE_POOL_SIZE ?? 10),
   });
 }

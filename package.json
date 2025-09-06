@@ -8,14 +8,18 @@
     "frontend"
   ],
   "scripts": {
-    "dev": "npm run dev:backend & npm run dev:frontend",
-    "dev:backend": "npm run dev --workspace=backend",
-    "dev:frontend": "npm run dev --workspace=frontend",
-    "build": "npm run build --workspaces",
-    "test": "npm run test --workspaces",
-    "docker:up": "docker-compose up -d",
-    "docker:down": "docker-compose down",
-    "docker:build": "docker-compose build"
+    "setup": "bash scripts/setup-dev.sh",
+    "validate": "bash scripts/validate-setup.sh",
+    "dev": "pnpm --filter=bookstore-backend run start:dev & pnpm --filter=bookstore-frontend run dev",
+    "dev:backend": "pnpm --filter=bookstore-backend run start:dev",
+    "dev:frontend": "pnpm --filter=bookstore-frontend run dev",
+    "build": "pnpm run build:shared && pnpm run build --filter=bookstore-backend --filter=bookstore-frontend",
+    "build:shared": "pnpm --filter=@book-store/shared build",
+    "test": "pnpm run test --filter=bookstore-backend --filter=bookstore-frontend",
+    "lint": "pnpm run lint --filter=bookstore-backend --filter=bookstore-frontend",
+    "clean": "pnpm run clean:deps && pnpm run clean:build",
+    "clean:deps": "rm -rf node_modules backend/node_modules frontend/node_modules shared/node_modules",
+    "clean:build": "rm -rf backend/dist frontend/.next shared/dist"
   },
   "devDependencies": {
     "@types/node": "^20.0.0"

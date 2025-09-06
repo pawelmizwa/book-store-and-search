@@ -32,7 +32,10 @@ export class BookController {
   }
 
   @Get("search")
-  @ApiOperation({ summary: "Search books with filters and pagination" })
+  @ApiOperation({ 
+    summary: "Search books with filters and pagination",
+    description: "Search books using various filters with secure cursor-based pagination. Cursors are cryptographically signed and time-limited for security."
+  })
   @ApiResponse({
     status: 200,
     description: "Books retrieved successfully",
@@ -40,7 +43,7 @@ export class BookController {
   })
   @ApiResponse({
     status: 400,
-    description: "Invalid search parameters or cursor",
+    description: "Invalid search parameters, malformed cursor, expired cursor, or invalid cursor signature",
   })
   @UsePipes(new ZodValidationPipe(bookSearchApiSchema))
   async searchBooks(@Query() searchDto: BookSearchDtoClass): Promise<PaginatedBooksResponseDto> {
@@ -159,13 +162,46 @@ export class BookController {
   @Get()
   @ApiOperation({
     summary: "Get all books with basic pagination (deprecated - use /search instead)",
+    description: "Get all books with secure cursor-based pagination. Cursors are cryptographically signed and time-limited for security."
   })
   @ApiResponse({
     status: 200,
     description: "Books retrieved successfully",
     type: PaginatedBooksResponseDto,
   })
+  @ApiResponse({
+    status: 400,
+    description: "Invalid search parameters, malformed cursor, expired cursor, or invalid cursor signature",
+  })
+  @UsePipes(new ZodValidationPipe(bookSearchApiSchema))
   async getAllBooks(@Query() searchDto: BookSearchDtoClass): Promise<PaginatedBooksResponseDto> {
-    return this.searchBooks(searchDto);
+    // Input is now validated by ZodValidationPipe
+    const validatedDto = searchDto;
+
+    const searchOptions = {
+      limit: validatedDto.limit,
+      cursor: validatedDto.cursor,
+      sort_by: validatedDto.sort_by,
+      sort_order: validatedDto.sort_order,
+      filters: {
+        title: validatedDto.title,
+        author: validatedDto.author,
+        min_rating: validatedDto.min_rating,
+        max_rating: validatedDto.max_rating,
+        search_query: validatedDto.search_query,
+      },
+    };
+
+    // Remove undefined filters
+    const cleanedFilters = Object.fromEntries(
+      Object.entries(searchOptions.filters).filter(([, value]) => value !== undefined)
+    );
+
+    const result = await this.bookService.searchBooks({
+      ...searchOptions,
+      filters: Object.keys(cleanedFilters).length > 0 ? cleanedFilters : undefined,
+    });
+
+    return PaginatedBooksResponseDto.fromPaginatedResult(result);
   }
 }

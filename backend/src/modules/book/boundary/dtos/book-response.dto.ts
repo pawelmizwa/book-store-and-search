@@ -78,8 +78,8 @@ export class PaginatedBooksResponseDto {
   has_next_page!: boolean;
 
   @ApiPropertyOptional({
-    description: "Cursor for the next page",
-    example: "eyJjcmVhdGVkX2F0IjoiMjAyNC0wMS0wMVQxMjowMDowMFoiLCJib29rX2lkIjoiYWJjZGVmIn0=",
+    description: "Secure cursor for the next page (base64 encoded with HMAC signature). Use this in subsequent requests for pagination.",
+    example: "eyJkYXRhIjp7ImNyZWF0ZWRfYXQiOiIyMDI0LTAxLTAxVDEyOjAwOjAwWiIsImlkIjoxMjN9LCJzaWduYXR1cmUiOiJhYmMxMjMiLCJ0aW1lc3RhbXAiOjE3MDQwNjcyMDB9MDA",
   })
   next_cursor?: string;
 

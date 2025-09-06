@@ -1,25 +1,37 @@
 import { Injectable, NestMiddleware } from '@nestjs/common';
 import { FastifyRequest, FastifyReply } from 'fastify';
+import validator from 'validator';
+import DOMPurify from 'dompurify';
+import { JSDOM } from 'jsdom';
+
+// Create DOM for DOMPurify in Node.js environment
+const window = new JSDOM('').window;
+const purify = DOMPurify(window as any);
 
 @Injectable()
 export class InputSanitizationMiddleware implements NestMiddleware {
   use(req: FastifyRequest, res: FastifyReply, next: () => void) {
-    // Sanitize query parameters
-    if (req.query) {
-      req.query = this.sanitizeObject(req.query);
-    }
+    try {
+      // Sanitize query parameters
+      if (req.query && typeof req.query === 'object') {
+        req.query = this.sanitizeObject(req.query);
+      }
 
-    // Sanitize request body
-    if (req.body) {
-      req.body = this.sanitizeObject(req.body);
-    }
+      // Sanitize request body
+      if (req.body && typeof req.body === 'object') {
+        req.body = this.sanitizeObject(req.body);
+      }
 
-    // Sanitize path parameters
-    if (req.params) {
-      req.params = this.sanitizeObject(req.params);
-    }
+      // Sanitize path parameters
+      if (req.params && typeof req.params === 'object') {
+        req.params = this.sanitizeObject(req.params);
+      }
 
-    next();
+      next();
+    } catch (error) {
+      console.error('Input sanitization error:', error);
+      next(); // Continue even if sanitization fails to avoid breaking the request
+    }
   }
 
   private sanitizeObject(obj: any): any {
@@ -27,7 +39,7 @@ export class InputSanitizationMiddleware implements NestMiddleware {
       return this.sanitizeString(obj);
     }
 
-    if (typeof obj === 'number' || typeof obj === 'boolean') {
+    if (typeof obj === 'number' || typeof obj === 'boolean' || obj === null) {
       return obj;
     }
 
@@ -51,19 +63,25 @@ export class InputSanitizationMiddleware implements NestMiddleware {
   private sanitizeString(str: string): string {
     if (typeof str !== 'string') return str;
 
-    return str
-      // Remove potential XSS patterns
-      .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
-      .replace(/<iframe\b[^<]*(?:(?!<\/iframe>)<[^<]*)*<\/iframe>/gi, '')
-      .replace(/javascript:/gi, '')
-      .replace(/on\w+\s*=/gi, '')
-      // Remove potential SQL injection patterns
-      .replace(/(\b(select|insert|update|delete|drop|create|alter|exec|execute|union|script)\b)/gi, '')
-      // Remove dangerous characters but preserve normal punctuation
-      .replace(/[<>]/g, '')
-      // Trim excessive whitespace
-      .trim()
-      // Limit length to prevent DoS
-      .substring(0, 1000);
+    // Basic validation and length limit
+    if (str.length > 10000) {
+      str = str.substring(0, 10000);
+    }
+
+    // Use DOMPurify for HTML sanitization (removes HTML tags but doesn't escape)
+    str = purify.sanitize(str, { 
+      ALLOWED_TAGS: [], // No HTML tags allowed
+      ALLOWED_ATTR: [] // No attributes allowed
+    });
+
+    // Additional validation for common patterns
+    str = str.trim();
+
+    // Only normalize email if it's actually an email (contains @)
+    if (str.includes('@') && validator.isEmail(str)) {
+      str = validator.normalizeEmail(str) || str;
+    }
+
+    return str;
   }
 }

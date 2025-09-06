@@ -7,23 +7,53 @@ export async function up(knex: Knex): Promise<void> {
 
   // Step 2: Add synthetic sequential primary key for better performance
   // Keep the existing UUID for external references, but use BIGINT for internal operations
+  
+  // First, drop the existing primary key constraint
+  await knex.raw("ALTER TABLE book.books DROP CONSTRAINT books_pkey");
+  
+  // Add the synthetic sequential ID column (nullable initially)
   await knex.schema.withSchema("book").alterTable("books", table => {
-    // Add the synthetic sequential ID using increments (BIGINT auto-increment)
-    table.bigIncrements("id").primary();
-    
-    // Make book_id non-primary but keep it unique and indexed
-    table.dropPrimary();
+    table.bigInteger("id").nullable();
+  });
+  
+  // Create the sequence and set the default
+  await knex.raw("CREATE SEQUENCE book.books_id_seq");
+  await knex.raw("ALTER TABLE book.books ALTER COLUMN id SET DEFAULT nextval('book.books_id_seq')");
+  await knex.raw("ALTER SEQUENCE book.books_id_seq OWNED BY book.books.id");
+  
+  // Populate existing rows with sequential IDs using ROW_NUMBER for predictable ordering
+  await knex.raw(`
+    UPDATE book.books 
+    SET id = subquery.row_num
+    FROM (
+      SELECT book_id, ROW_NUMBER() OVER (ORDER BY created_at, book_id) as row_num
+      FROM book.books
+    ) subquery
+    WHERE book.books.book_id = subquery.book_id
+  `);
+  
+  // Update sequence to continue from the highest assigned ID
+  await knex.raw("SELECT setval('book.books_id_seq', (SELECT COALESCE(MAX(id), 0) + 1 FROM book.books), false)");
+  
+  // Now make the column NOT NULL
+  await knex.raw("ALTER TABLE book.books ALTER COLUMN id SET NOT NULL");
+  
+  // Now make the new id column the primary key
+  await knex.raw("ALTER TABLE book.books ADD PRIMARY KEY (id)");
+  
+  // Make book_id unique but not primary
+  await knex.schema.withSchema("book").alterTable("books", table => {
     table.unique(["book_id"]);
   });
 
   // Step 3: Add trigram indexes for fast ILIKE queries
   await knex.raw(`
-    CREATE INDEX CONCURRENTLY idx_books_title_trigram 
+    CREATE INDEX idx_books_title_trigram 
     ON book.books USING GIN (title gin_trgm_ops)
   `);
 
   await knex.raw(`
-    CREATE INDEX CONCURRENTLY idx_books_author_trigram 
+    CREATE INDEX idx_books_author_trigram 
     ON book.books USING GIN (author gin_trgm_ops)
   `);
 
@@ -31,21 +61,21 @@ export async function up(knex: Knex): Promise<void> {
   
   // For rating-based searches with pagination
   await knex.raw(`
-    CREATE INDEX CONCURRENTLY idx_books_rating_pagination
+    CREATE INDEX idx_books_rating_pagination
     ON book.books (rating, created_at, id) 
     WHERE rating IS NOT NULL
   `);
 
   // For title + rating searches
   await knex.raw(`
-    CREATE INDEX CONCURRENTLY idx_books_title_rating_search
+    CREATE INDEX idx_books_title_rating_search
     ON book.books (title, rating, created_at, id)
     WHERE rating IS NOT NULL
   `);
 
   // For author + rating searches  
   await knex.raw(`
-    CREATE INDEX CONCURRENTLY idx_books_author_rating_search
+    CREATE INDEX idx_books_author_rating_search
     ON book.books (author, rating, created_at, id)
     WHERE rating IS NOT NULL
   `);
@@ -56,46 +86,45 @@ export async function up(knex: Knex): Promise<void> {
   });
 
   await knex.raw(`
-    CREATE INDEX CONCURRENTLY idx_books_pagination_optimized
+    CREATE INDEX idx_books_pagination_optimized
     ON book.books (created_at, id)
   `);
 
   // Step 6: Add covering index for complex multi-column searches
   await knex.raw(`
-    CREATE INDEX CONCURRENTLY idx_books_search_covering
+    CREATE INDEX idx_books_search_covering
     ON book.books (title, author, rating, created_at, id)
   `);
 
   // Step 7: Add expression indexes for case-insensitive searches
   await knex.raw(`
-    CREATE INDEX CONCURRENTLY idx_books_title_lower
+    CREATE INDEX idx_books_title_lower
     ON book.books (LOWER(title))
   `);
 
   await knex.raw(`
-    CREATE INDEX CONCURRENTLY idx_books_author_lower  
+    CREATE INDEX idx_books_author_lower  
     ON book.books (LOWER(author))
   `);
 
   // Step 8: Add partial indexes for commonly filtered data
   
-  // Index for recent books (last 30 days) - hot data
+  // Index for recent books (this will be more general - for fast date-based queries)
   await knex.raw(`
-    CREATE INDEX CONCURRENTLY idx_books_recent
-    ON book.books (created_at, id)
-    WHERE created_at > NOW() - INTERVAL '30 days'
+    CREATE INDEX idx_books_recent
+    ON book.books (created_at DESC, id)
   `);
 
   // Index for highly rated books (4+ stars)
   await knex.raw(`
-    CREATE INDEX CONCURRENTLY idx_books_highly_rated
+    CREATE INDEX idx_books_highly_rated
     ON book.books (rating, created_at, id)
     WHERE rating >= 4.0
   `);
 
   // Index for books with ISBN (published books)
   await knex.raw(`
-    CREATE INDEX CONCURRENTLY idx_books_published
+    CREATE INDEX idx_books_published
     ON book.books (isbn, created_at, id)
     WHERE isbn IS NOT NULL
   `);
@@ -111,7 +140,7 @@ export async function up(knex: Knex): Promise<void> {
   `);
 
   await knex.raw(`
-    CREATE INDEX CONCURRENTLY idx_books_fulltext_optimized
+    CREATE INDEX idx_books_fulltext_optimized
     ON book.books 
     USING GIN (to_tsvector('book_search', title || ' ' || author))
   `);
@@ -129,7 +158,7 @@ export async function up(knex: Knex): Promise<void> {
 
   // Create GIN index on the materialized column
   await knex.raw(`
-    CREATE INDEX CONCURRENTLY idx_books_search_vector
+    CREATE INDEX idx_books_search_vector
     ON book.books USING GIN (search_vector)
   `);
 
@@ -197,15 +226,28 @@ export async function down(knex: Knex): Promise<void> {
   ];
 
   for (const indexName of indexesToDrop) {
-    await knex.raw(`DROP INDEX CONCURRENTLY IF EXISTS book.${indexName}`);
+    await knex.raw(`DROP INDEX IF EXISTS book.${indexName}`);
   }
 
   // Restore the original primary key structure
+  // First drop the current primary key on id
+  await knex.raw("ALTER TABLE book.books DROP CONSTRAINT books_pkey");
+  
+  // Drop the unique constraint on book_id
   await knex.schema.withSchema("book").alterTable("books", table => {
     table.dropUnique(["book_id"]);
-    table.dropColumn("id");
-    table.primary(["book_id"]);
   });
+  
+  // Drop the sequence
+  await knex.raw("DROP SEQUENCE IF EXISTS book.books_id_seq");
+  
+  // Drop the id column
+  await knex.schema.withSchema("book").alterTable("books", table => {
+    table.dropColumn("id");
+  });
+  
+  // Restore book_id as primary key
+  await knex.raw("ALTER TABLE book.books ADD PRIMARY KEY (book_id)");
 
   // Recreate the original pagination index
   await knex.schema.withSchema("book").alterTable("books", table => {

@@ -103,47 +103,180 @@ graph TD
 
 ### Development Setup
 
-1. **Clone the repository**:
+#### 🐳 Quick Start with Docker (Recommended)
 
+1. **Prerequisites**:
+   - Docker & Docker Compose
+   - Git
+
+2. **Clone and start**:
    ```bash
    git clone <repository-url>
    cd book-store-and-search
+   
+   # Start all services with Docker
+   docker compose up -d
+   
+   # Or run the test script
+   bash scripts/test-docker.sh
    ```
 
-2. **Start with Docker (Recommended)**:
+3. **Access the application**:
+   - 🌐 Frontend: http://localhost:3000
+   - 🔧 Backend API: http://localhost:8080
+   - 📚 API Documentation: http://localhost:8080/docs
+   - 🗄️ Database: localhost:5432 (user: bookstore, password: bookstore_password)
 
+#### 🔧 Manual Setup (Advanced)
+
+1. **Prerequisites**:
+   - Node.js 20+, PostgreSQL 15+, pnpm 9.15+
+
+2. **Clone and setup**:
    ```bash
-   # Start all services including database
-   docker-compose -f docker-compose.yml -f docker-compose.dev.yml up
-
-   # Run database migrations
-   docker-compose exec backend pnpm migrate
+   git clone <repository-url>
+   cd book-store-and-search
+   pnpm run setup
    ```
 
-3. **Or run locally**:
-
+3. **Start development servers**:
    ```bash
-   # Start PostgreSQL
-   docker-compose up postgres -d
+   # Option A: Local development with Docker database
+   pnpm run docker:db:up  # Start PostgreSQL
+   pnpm run db:migrate    # Run database migrations
+   pnpm run dev           # Start backend & frontend
+   
+   # Option B: Docker development environment
+   pnpm run docker:dev
+   ```
 
-   # Backend setup
+#### Manual Setup (Advanced)
+
+If you prefer manual setup or need to troubleshoot:
+
+1. **Prerequisites**:
+   ```bash
+   # Install workspace dependencies
+   pnpm install
+   
+   # Build shared package (required for backend)
+   pnpm run build:shared
+   ```
+
+2. **Environment Configuration**:
+   ```bash
+   # Backend configuration
    cd backend
-   pnpm install
-   cp .env.example .env
-   pnpm migrate
-   pnpm start:dev
+   cp .env.example .env  # Edit with your settings
+   
+   # Frontend configuration  
+   cd ../frontend
+   cp .env.example .env.local  # Edit with your settings
+   ```
 
-   # Frontend setup (new terminal)
+3. **Database Setup**:
+   ```bash
+   # Start PostgreSQL with Docker
+   pnpm run docker:db:up
+   
+   # Run migrations
+   pnpm run db:migrate
+   ```
+
+4. **Start Services**:
+   ```bash
+   # Backend (terminal 1)
+   cd backend
+   pnpm start:dev
+   
+   # Frontend (terminal 2) 
    cd frontend
-   pnpm install
-   cp .env.example .env.local
    pnpm dev
    ```
 
-4. **Access the application**:
-   - Frontend: http://localhost:3000
-   - Backend API: http://localhost:3001
-   - API Documentation: http://localhost:3001/docs
+#### Environment Variables
+
+**Backend** (`.env`):
+```bash
+# Required
+NODE_ENV=development
+PORT=3001
+DATABASE_URL=postgresql://bookstore_user:bookstore_password@localhost:5432/bookstore
+
+# Optional
+LOG_LEVEL=info
+DATABASE_POOL_SIZE=10
+IAM_JWKS_URI=https://your-auth-provider.com/.well-known/jwks.json
+```
+
+**Frontend** (`.env.local`):
+```bash
+# Required
+NEXT_PUBLIC_API_URL=http://localhost:3001
+
+# Optional
+NEXT_PUBLIC_ENVIRONMENT=local
+NEXT_PUBLIC_APP_NAME=Book Store
+```
+
+#### Available Scripts
+
+| Command | Description |
+|---------|-------------|
+| `pnpm run setup` | 🚀 One-time development environment setup |
+| `pnpm run dev` | 🔄 Start backend & frontend in development mode |
+| `pnpm run docker:dev` | 🐳 Start full Docker development environment |
+| `pnpm run docker:db:up` | 🗄️ Start PostgreSQL database only |
+| `pnpm run db:migrate` | 📊 Run database migrations |
+| `pnpm run build` | 🔨 Build all packages for production |
+| `pnpm run test` | 🧪 Run tests across all packages |
+| `pnpm run lint` | 🔍 Lint code across all packages |
+| `pnpm run clean` | 🧹 Clean all dependencies and build artifacts |
+
+#### Troubleshooting
+
+**🔧 Backend won't start:**
+```bash
+# Check if shared package is built
+pnpm run build:shared
+
+# Check database connection
+docker compose ps postgres
+
+# Reset backend dependencies
+cd backend && rm -rf node_modules && pnpm install
+```
+
+**🌐 Frontend issues:**
+```bash
+# Check environment variables
+cat frontend/.env.local
+
+# Reset frontend
+cd frontend && rm -rf .next node_modules && pnpm install
+```
+
+**🐳 Docker issues:**
+```bash
+# Rebuild containers
+pnpm run docker:build
+
+# Reset Docker environment
+pnpm run docker:down
+docker system prune -f
+pnpm run docker:dev
+```
+
+**🗄️ Database connection errors:**
+```bash
+# Check PostgreSQL logs
+docker compose logs postgres
+
+# Reset database
+pnpm run docker:db:down
+pnpm run docker:db:up
+pnpm run db:migrate
+```
 
 ### Production Deployment
 
@@ -279,22 +412,63 @@ Key migration `20250905151310_optimize_books_performance` implements:
 
 ## 🐳 Docker Configuration
 
-### Development
+### Quick Commands
 
 ```bash
-# Start development environment
-docker-compose -f docker-compose.yml -f docker-compose.dev.yml up
+# Start all services (production mode)
+docker compose up -d
+
+# Start with development mode (hot reload)
+docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d
+
+# Stop all services
+docker compose down
 
 # View logs
-docker-compose logs -f backend frontend
+docker compose logs -f backend frontend
+
+# Rebuild after code changes
+docker compose build
+
+# Test complete setup
+bash scripts/test-docker.sh
 ```
 
-### Production
+### Development Environment
+
+- **Hot Reload**: Development mode mounts source code for instant changes
+- **Database**: Persistent PostgreSQL with separate dev/prod databases
+- **Networking**: Internal Docker network with proper service discovery
+- **Health Checks**: Built-in health monitoring for all services
+
+### Production Deployment
 
 ```bash
 # Production deployment
-docker-compose up -d
+docker compose up -d
 
-# Scale services
-docker-compose up -d --scale backend=3
+# Scale backend services
+docker compose up -d --scale backend=3
+
+# Run database migrations
+docker compose exec backend pnpm migrate
+```
+
+### Troubleshooting
+
+```bash
+# Check service status
+docker compose ps
+
+# View detailed logs
+docker compose logs [service-name]
+
+# Restart a service
+docker compose restart [service-name]
+
+# Clean rebuild
+docker compose down && docker compose build --no-cache && docker compose up -d
+
+# Remove everything and start fresh
+docker compose down -v && docker system prune -f
 ```

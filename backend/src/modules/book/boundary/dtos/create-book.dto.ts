@@ -1,4 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
+import { IsString, IsOptional, IsNumber, IsPositive, Min, Max, MaxLength } from "class-validator";
 import { CreateBookDto } from "@book-store/shared";
 
 export class CreateBookDtoClass implements CreateBookDto {
@@ -7,6 +8,8 @@ export class CreateBookDtoClass implements CreateBookDto {
     example: "The Great Gatsby",
     maxLength: 500,
   })
+  @IsString()
+  @MaxLength(500)
   title!: string;
 
   @ApiProperty({
@@ -14,12 +17,17 @@ export class CreateBookDtoClass implements CreateBookDto {
     example: "F. Scott Fitzgerald",
     maxLength: 255,
   })
+  @IsString()
+  @MaxLength(255)
   author!: string;
 
   @ApiPropertyOptional({
     description: "ISBN number",
     example: "978-0-7432-7356-5",
   })
+  @IsOptional()
+  @IsString()
+  @MaxLength(50)
   isbn?: string;
 
   @ApiPropertyOptional({
@@ -27,6 +35,9 @@ export class CreateBookDtoClass implements CreateBookDto {
     example: 180,
     minimum: 1,
   })
+  @IsOptional()
+  @IsNumber()
+  @IsPositive()
   pages?: number;
 
   @ApiPropertyOptional({
@@ -35,5 +46,9 @@ export class CreateBookDtoClass implements CreateBookDto {
     minimum: 1.0,
     maximum: 5.0,
   })
+  @IsOptional()
+  @IsNumber()
+  @Min(1.0)
+  @Max(5.0)
   rating?: number;
 }

@@ -17,6 +17,18 @@ async function bootstrap() {
     cors: true,
   });
 
+  // Register Fastify rate limiting plugin
+  await app.register(require('@fastify/rate-limit'), {
+    max: 100,
+    timeWindow: '15 minutes',
+    addHeaders: {
+      'x-ratelimit-limit': true,
+      'x-ratelimit-remaining': true,
+      'x-ratelimit-reset': true
+    }
+  });
+
+  // Register security headers with Helmet
   await app.register(fastifyHelmet as any, {
     contentSecurityPolicy: {
       directives: {

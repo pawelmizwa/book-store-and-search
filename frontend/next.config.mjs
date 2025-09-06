@@ -1,10 +1,12 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
-  swcMinify: true,
   output: "standalone",
   experimental: {
-    outputFileTracingRoot: undefined,
+    outputFileTracingRoot:
+      process.env.NODE_ENV === "production"
+        ? "/app"
+        : "/Users/pawelmizwa/Own_Projects/book-store-and-search",
   },
   webpack: (config, { defaultLoaders }) => {
     config.module.rules.push({

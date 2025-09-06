@@ -1,4 +1,4 @@
-import { Injectable } from "@nestjs/common";
+import { Injectable, Logger } from "@nestjs/common";
 import { TransactionHost } from "@nestjs-cls/transactional";
 import { TransactionalAdapterKnex } from "@nestjs-cls/transactional-adapter-knex";
 import { PgRepository } from "src/database/pg-repository";
@@ -54,7 +54,11 @@ export class BookPgRepository extends PgRepository implements BookRepository {
   }
 
   async search(options: BookSearchOptions): Promise<PaginatedResult<BookEntity>> {
-    let query = this.query.clone();
+    this.logger.log(`Starting book search`, { options });
+    
+    try {
+      let query = this.query.clone();
+      this.logger.debug(`Base query created for table: ${this.schema}.${this.tableName}`);
 
     // Apply filters
     if (options.filters) {
@@ -138,10 +142,16 @@ export class BookPgRepository extends PgRepository implements BookRepository {
 
     // Limit + 1 to check if there's a next page
     const limit = Math.min(options.limit, 100); // Cap at 100 for performance
+    this.logger.debug(`Executing query with limit: ${limit + 1}`);
+    
     const rows = await query.limit(limit + 1);
+    this.logger.debug(`Query executed successfully, returned ${rows.length} rows`);
 
     const has_next_page = rows.length > limit;
-    const data = rows.slice(0, limit).map(row => new BookEntity(this.mapRowToEntity(row)));
+    const data = rows.slice(0, limit).map(row => {
+      this.logger.debug(`Mapping row to entity`, { row });
+      return new BookEntity(this.mapRowToEntity(row));
+    });
 
     let next_cursor: string | undefined;
     if (has_next_page && data.length > 0) {
@@ -150,13 +160,29 @@ export class BookPgRepository extends PgRepository implements BookRepository {
         created_at: lastBook.created_at.toISOString(),
         id: lastBook.props.id,
       });
+      this.logger.debug(`Generated next cursor`, { next_cursor });
     }
 
-    return {
+    const result = {
       data,
       has_next_page,
       next_cursor,
     };
+
+    this.logger.log(`Search completed successfully`, { 
+      resultCount: data.length, 
+      hasNextPage: has_next_page 
+    });
+
+    return result;
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      this.logger.error(`Database query failed during book search: ${errorMessage}`, { 
+        error: error instanceof Error ? error.stack : String(error), 
+        options
+      });
+      throw error;
+    }
   }
 
   async countAll(): Promise<number> {

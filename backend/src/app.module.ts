@@ -7,7 +7,6 @@ import { BookModule } from "src/modules/book/book.module";
 import { HealthModule } from "src/health/health.module";
 import { PrometheusModule } from "@willsoto/nestjs-prometheus";
 import { InputSanitizationMiddleware } from "src/middleware/input-sanitization.middleware";
-import { RateLimitingMiddleware } from "src/middleware/rate-limiting.middleware";
 
 @Module({
   imports: [
@@ -22,12 +21,11 @@ import { RateLimitingMiddleware } from "src/middleware/rate-limiting.middleware"
 })
 export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {
+    // Apply library-based input sanitization to all routes
     consumer
       .apply(InputSanitizationMiddleware)
-      .forRoutes('*'); // Apply to all routes
+      .forRoutes('*');
     
-    consumer
-      .apply(RateLimitingMiddleware)
-      .forRoutes('books'); // Apply rate limiting to book routes
+    // Note: Rate limiting is handled by @fastify/rate-limit plugin in main.ts
   }
 }
